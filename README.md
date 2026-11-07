@@ -1,59 +1,115 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# ColoCare 食材查詢 API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+以 Laravel 建立的 REST API：輸入關鍵字查詢食材，回傳營養資料，並為每一筆食材標示紅黃綠燈。
 
-## About Laravel
+本專案源自課程專題「ColoCare 大腸癌術後階梯式飲食管理系統」，這個儲存庫只實作其中的食材查詢端點，作為後端作品集練習。
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 免責聲明
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+這是教學與作品集專案，**不是醫療建議**。範例資料為示範用的假資料，燈號規則為自行設定的簡化示範，不可作為飲食或醫療決策依據。
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## 使用技術
 
-## Learning Laravel
+- PHP 8、Laravel
+- MySQL（開發環境：XAMPP）
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## 安裝與執行
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```bash
+git clone https://github.com/rouxchencode/colocare-api.git
+cd colocare-api
+composer install
+cp .env.example .env
+```
 
-## Laravel Sponsors
+編輯 `.env`，填入資料庫設定（資料庫名稱 `colocare`，需先在 MySQL 建立）：
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=colocare
+DB_USERNAME=root
+DB_PASSWORD=
+```
 
-### Premium Partners
+接著執行：
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+```bash
+php artisan key:generate
+php artisan migrate
+php artisan serve
+```
 
-## Contributing
+API 預設網址：`http://127.0.0.1:8000`
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## API
 
-## Code of Conduct
+### GET /api/foods
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+查詢食材，可用關鍵字篩選。
 
-## Security Vulnerabilities
+| 參數 | 必填 | 說明 |
+|------|------|------|
+| keyword | 否 | 食材名稱包含的文字；不帶則回傳全部 |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+範例：
 
-## License
+```
+GET /api/foods?keyword=飯
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+回傳（JSON 陣列，每筆為一項食材，範例僅示意格式）：
+
+```json
+[
+  {
+    "id": 4,
+    "food_name": "稀飯",
+    "crude_fiber": "0.10",
+    "fat_ratio": "0.10",
+    "gas_label": 0,
+    "created_at": null,
+    "updated_at": null,
+    "light": "green"
+  }
+]
+```
+
+沒有符合的資料時回傳空陣列 `[]`。
+
+### 燈號規則（教學示範）
+
+| 條件 | 燈號 |
+|------|------|
+| 易產氣（`gas_label` 為 1） | red |
+| 粗纖維 > 2 或脂肪比率 > 10 | yellow |
+| 其他 | green |
+
+燈號在 API 回傳時即時計算，不存在資料庫中。
+
+## 資料表
+
+資料表名稱為 `food`（Laravel 依 Model 名稱 `Food` 自動推得，採用框架預設命名）。
+
+| 欄位 | 型態 | 說明 |
+|------|------|------|
+| id | bigint | 主鍵 |
+| food_name | varchar(100) | 食材名稱 |
+| crude_fiber | decimal(5,2) | 粗纖維（g / 100g） |
+| fat_ratio | decimal(5,2) | 脂肪比率（%） |
+| gas_label | boolean | 是否為易產氣食材，預設 false |
+| created_at / updated_at | timestamp | 建立與更新時間 |
+
+資料表結構以 migration 管理，執行 `php artisan migrate` 即可建立。
+
+## 未來規劃
+
+- 匯入衛福部食品營養成分開放資料，取代示範資料
+- 查詢結果加入分頁
+- 新增食材端點與認證（Laravel Sanctum）
+- 依術後階段（phase）調整燈號規則
+
+## 作者
+
+Roux

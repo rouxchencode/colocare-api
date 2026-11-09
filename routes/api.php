@@ -10,14 +10,12 @@ Route::get('/foods', function (Request $request) {
 
     return Food::when($keyword, function ($query, $keyword) {
         $query->where('food_name', 'like', "%{$keyword}%");
-    })->get()->map(function ($food) {
-        if ($food->gas_label) {
-            $food->light = 'red';
-        } elseif ($food->crude_fiber > 2 || $food->fat_ratio > 10) {
-            $food->light = 'yellow';
-        } else {
-            $food->light = 'green';
-        }
+        })->get()->map(function ($food) {
+        $food->light = match ((int) $food->gas_label) {
+            2 => 'red',
+            1 => 'yellow',
+            default => 'green',
+        };
         return $food;
     });
 });

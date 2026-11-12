@@ -132,3 +132,27 @@ GET /api/foods?keyword=飯
 ## 作者
 
 Roux
+
+## 部署到 Ubuntu(Nginx + PHP-FPM + MySQL)
+
+已在 Ubuntu 26.04(WSL2)上完成部署驗證。
+
+1. 安裝套件:
+   `sudo apt install -y nginx php-fpm php-mysql php-xml php-mbstring php-curl php-zip mysql-server composer git`
+2. 建立資料庫與專用帳號(`sudo mysql`):
+   ```sql
+   CREATE DATABASE colocare CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   CREATE USER 'colocare'@'localhost' IDENTIFIED BY '<你的密碼>';
+   GRANT ALL ON colocare.* TO 'colocare'@'localhost';
+   ```
+3. 取得專案並安裝依賴:`git clone` 後執行 `composer install`、`cp .env.example .env`、`php artisan key:generate`,並在 `.env` 設定 `DB_*`
+4. 建立資料表與範例資料:`php artisan migrate`、`php artisan db:seed --class=FoodSeeder`
+5. 放到 `/var/www/colocare-api`,將 `storage` 與 `bootstrap/cache` 擁有者設為 `www-data`、權限 775
+6. 設定 Nginx:`root` 指向專案的 `public`,所有請求導向 `index.php`,PHP 交給 php-fpm socket,並拒絕存取隱藏檔(`.env`、`.git`)
+7. `sudo nginx -t` 檢查設定,`sudo systemctl reload nginx` 套用
+8. 驗證:`curl -G "http://localhost/api/foods" --data-urlencode "keyword=番茄"`
+
+### 部署時遇到的問題
+- `curl` 網址直接放中文會 `Empty reply`,需用 `--data-urlencode` 編碼
+- `.env` 的 `DB_*` 被 `#` 註解時 Laravel 讀不到,會連到預設的 sqlite
+- Windows 的 XAMPP Apache 與 WSL 的 Nginx 同時佔用 80 埠,瀏覽器的 `localhost` 會先連到 XAMPP
